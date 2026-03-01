@@ -61,6 +61,10 @@ declare module "hardhat/types/runtime" {
       name: "SubscriptionManager",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.SubscriptionManager__factory>;
+    getContractFactory(
+      name: "SubscriptionManagerFLOW",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.SubscriptionManagerFLOW__factory>;
 
     getContractAt(
       name: "IERC1155Errors",
@@ -122,6 +126,11 @@ declare module "hardhat/types/runtime" {
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.SubscriptionManager>;
+    getContractAt(
+      name: "SubscriptionManagerFLOW",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.SubscriptionManagerFLOW>;
 
     deployContract(
       name: "IERC1155Errors",
@@ -171,6 +180,10 @@ declare module "hardhat/types/runtime" {
       name: "SubscriptionManager",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.SubscriptionManager>;
+    deployContract(
+      name: "SubscriptionManagerFLOW",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SubscriptionManagerFLOW>;
 
     deployContract(
       name: "IERC1155Errors",
@@ -232,6 +245,11 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.SubscriptionManager>;
+    deployContract(
+      name: "SubscriptionManagerFLOW",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SubscriptionManagerFLOW>;
 
     // default types
     getContractFactory(

@@ -4,12 +4,13 @@ import { SubscriptionService } from '../services/subscriptionService';
 const router = express.Router();
 const subscriptionService = new SubscriptionService();
 
-// Get all subscriptions for a user
+// Get all subscriptions for a user (optional ?contractAddress=0x... to filter by current contract)
 router.get('/user/:userAddress', async (req, res) => {
   try {
     const { userAddress } = req.params;
-    console.log('Fetching subscriptions for user:', userAddress);
-    const subscriptions = await subscriptionService.getUserSubscriptions(userAddress);
+    const contractAddress = req.query.contractAddress as string | undefined;
+    console.log('Fetching subscriptions for user:', userAddress, contractAddress ? `(contract: ${contractAddress.slice(0, 10)}...)` : '');
+    const subscriptions = await subscriptionService.getUserSubscriptions(userAddress, contractAddress);
     console.log('Found subscriptions:', subscriptions.length);
     res.json({ success: true, data: subscriptions });
   } catch (error: any) {

@@ -10,6 +10,8 @@ export interface CreateSubscriptionInput {
   recipientAddress: string;
   userAddress: string;
   autoPay?: boolean;
+  onChainSubscriptionId?: string; // SubscriptionManager contract subscription id (uint256 as string)
+  onChainContractAddress?: string; // Contract address (e.g. SubscriptionManagerFLOW) for filtering
   usageData?: {
     lastUsed?: Date;
     usageCount?: number;
@@ -35,17 +37,32 @@ export class SubscriptionService {
   /**
    * Get all subscriptions for a user (with caching)
    */
-  async getUserSubscriptions(userAddress: string) {
-    const cacheKey = CacheKeys.userSubscriptions(userAddress);
-    
+  /**
+   * Get subscriptions for a user. When SUBSCRIPTION_CONTRACT_ADDRESS is set, only returns
+   * subscriptions for that contract (or with no on-chain id). Hides subscriptions from other contracts.
+   */
+  async getUserSubscriptions(userAddress: string, contractAddress?: string) {
+    const currentContract = contractAddress ?? process.env.SUBSCRIPTION_CONTRACT_ADDRESS;
+    const cacheKey = currentContract
+      ? `${CacheKeys.userSubscriptions(userAddress)}:${currentContract}`
+      : CacheKeys.userSubscriptions(userAddress);
+
     return cacheService.getOrSet(
       cacheKey,
       async () => {
+        const where: any = {
+          userAddress: userAddress.toLowerCase(),
+          isActive: true,
+        };
+        // Only show subscriptions for the current contract (or off-chain only)
+        if (currentContract) {
+          const addr = currentContract.toLowerCase();
+          where.AND = [
+            { OR: [{ onChainContractAddress: null }, { onChainContractAddress: addr }] },
+          ];
+        }
         const subscriptions = await prisma.subscription.findMany({
-          where: {
-            userAddress: userAddress.toLowerCase(),
-            isActive: true,
-          },
+          where,
           include: {
             service: true,
             payments: {
@@ -125,7 +142,7 @@ export class SubscriptionService {
    * Create a new subscription (with cache invalidation)
    */
   async createSubscription(input: CreateSubscriptionInput) {
-    const { serviceId, serviceName, cost, frequency, recipientAddress, userAddress, autoPay, usageData } = input;
+    const { serviceId, serviceName, cost, frequency, recipientAddress, userAddress, autoPay, onChainSubscriptionId, onChainContractAddress, usageData } = input;
 
     // Calculate next payment date
     const nextPaymentDate = this.calculateNextPaymentDate(frequency);
@@ -160,6 +177,8 @@ export class SubscriptionService {
         recipientAddress,
         nextPaymentDate,
         autoPay: autoPay ?? false,
+        onChainSubscriptionId: onChainSubscriptionId ?? null,
+        onChainContractAddress: onChainContractAddress ? onChainContractAddress.toLowerCase() : null,
         usageData: usageData ? JSON.parse(JSON.stringify(usageData)) : null,
       },
       include: {

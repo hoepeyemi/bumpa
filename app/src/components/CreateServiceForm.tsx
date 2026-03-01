@@ -116,7 +116,7 @@ export default function CreateServiceForm({
           <div className="form-group-row">
             <div className="form-group">
               <label className="form-label">
-                Cost (USDC) <span className="required">*</span>
+                Cost (FLOW) <span className="required">*</span>
               </label>
               <input
                 type="number"

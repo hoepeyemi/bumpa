@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { useActiveAccount } from "thirdweb/react";
+import type { ThirdwebClient } from "thirdweb";
 import { SubscriptionAgent, Subscription, AISuggestion } from "../services/subscriptionService";
 import { subscriptionApi, Payment } from "../services/subscriptionApi";
+import { useSubscriptionContract, useSubscriptionContractPay } from "../hooks/useSubscriptionContract";
+import { SUBSCRIPTION_CONTRACT_ADDRESS } from "../contracts/config";
 import SubscriptionCard from "./SubscriptionCard";
 import AISuggestions from "./AISuggestions";
 import CreateServiceForm from "./CreateServiceForm";
@@ -9,17 +12,21 @@ import PaymentHistoryItem from "./PaymentHistoryItem";
 import "./SubscriptionManager.css";
 
 interface SubscriptionManagerProps {
+  client: ThirdwebClient;
   subscriptionAgent: SubscriptionAgent;
   onSuccess?: (message: string) => void;
   onError?: (message: string) => void;
 }
 
 export default function SubscriptionManager({
+  client,
   subscriptionAgent,
   onSuccess,
   onError,
 }: SubscriptionManagerProps) {
   const account = useActiveAccount();
+  const { subscribe: contractSubscribe, cancel: contractCancel, isPending: contractPending } = useSubscriptionContract(client);
+  const { payWithApproval, isPending: payPending } = useSubscriptionContractPay(client);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
   const [loading, setLoading] = useState(false);
@@ -102,17 +109,29 @@ export default function SubscriptionManager({
 
     try {
       setLoading(true);
-      const results = await subscriptionAgent.manageSubscriptions(account);
-      
-      const successCount = results.filter(r => r.success).length;
+      const dueSubs = subscriptions.filter(
+        (s) => s.isActive && s.autoPay && new Date() >= s.nextPaymentDate
+      );
+      let successCount = 0;
+      for (const sub of dueSubs) {
+        try {
+          if (sub.onChainSubscriptionId) {
+            await payWithApproval(sub.onChainSubscriptionId, sub.cost, sub.id);
+            successCount++;
+          } else {
+            const result = await subscriptionAgent.autoPaySubscription(account, sub);
+            if (result.success) successCount++;
+          }
+        } catch (_) {
+          // continue with next
+        }
+      }
       if (successCount > 0) {
         onSuccess?.(`Automatically paid ${successCount} subscription${successCount > 1 ? 's' : ''}`);
-        loadSubscriptions();
+        await loadSubscriptions();
       }
-
-      const failedCount = results.filter(r => !r.success).length;
-      if (failedCount > 0) {
-        onError?.(`Failed to pay ${failedCount} subscription${failedCount > 1 ? 's' : ''}`);
+      if (dueSubs.length > successCount && dueSubs.length > 0) {
+        onError?.(`Failed to pay ${dueSubs.length - successCount} subscription(s)`);
       }
     } catch (error) {
       console.error('Error managing subscriptions:', error);
@@ -122,13 +141,21 @@ export default function SubscriptionManager({
     }
   };
 
-  const handleCancelSubscription = async (id: string) => {
-    if (await subscriptionAgent.removeSubscription(id)) {
-      onSuccess?.('Subscription cancelled');
-      await loadSubscriptions();
-      loadSuggestions();
-    } else {
-      onError?.('Failed to cancel subscription');
+  const handleCancelSubscription = async (subscription: Subscription) => {
+    const id = subscription.id;
+    try {
+      if (subscription.onChainSubscriptionId) {
+        await contractCancel(subscription.onChainSubscriptionId);
+      }
+      if (await subscriptionAgent.removeSubscription(id)) {
+        onSuccess?.('Subscription cancelled');
+        await loadSubscriptions();
+        loadSuggestions();
+      } else {
+        onError?.('Failed to cancel subscription');
+      }
+    } catch (e) {
+      onError?.(e instanceof Error ? e.message : 'Failed to cancel subscription');
     }
   };
 
@@ -182,19 +209,27 @@ export default function SubscriptionManager({
 
     try {
       setLoading(true);
-      onSuccess?.(`Processing payment of $${subscription.cost.toFixed(3)} USDC to ${subscription.service}...`);
-      
-      const result = await subscriptionAgent.autoPaySubscription(account, subscription);
-      
-      if (result.success) {
-        onSuccess?.(`✅ Successfully paid $${subscription.cost.toFixed(3)} USDC to ${subscription.service}. Transaction: ${result.transactionHash?.slice(0, 10)}...`);
-        loadSubscriptions();
+      onSuccess?.(`Processing payment of ${subscription.cost.toFixed(4)} FLOW to ${subscription.service}...`);
+
+      if (subscription.onChainSubscriptionId) {
+        const { txHash } = await payWithApproval(
+          subscription.onChainSubscriptionId,
+          subscription.cost,
+          subscription.id
+        );
+        onSuccess?.(`✅ Paid ${subscription.cost.toFixed(4)} FLOW. Tx: ${txHash.slice(0, 10)}...`);
       } else {
-        onError?.(result.error || 'Payment failed. Please check your USDC.e balance and try again.');
+        const result = await subscriptionAgent.autoPaySubscription(account, subscription);
+        if (result.success) {
+          onSuccess?.(`✅ Successfully paid ${subscription.cost.toFixed(4)} FLOW. Transaction: ${result.transactionHash?.slice(0, 10)}...`);
+        } else {
+          onError?.(result.error || 'Payment failed. Please check your FLOW balance.');
+        }
       }
+      await loadSubscriptions();
     } catch (error) {
       console.error('Payment error:', error);
-      onError?.(`Payment failed: ${error instanceof Error ? error.message : 'Unknown error'}. Please ensure you have sufficient USDC.e balance.`);
+      onError?.(`Payment failed: ${error instanceof Error ? error.message : 'Unknown error'}. Ensure sufficient FLOW balance.`);
     } finally {
       setLoading(false);
     }
@@ -229,7 +264,7 @@ export default function SubscriptionManager({
         </div>
         <div className="stat-card">
           <div className="stat-label">Monthly Cost</div>
-          <div className="stat-value">${totalMonthlyCost.toFixed(3)}</div>
+          <div className="stat-value">{totalMonthlyCost.toFixed(4)} FLOW</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Due Now</div>
@@ -255,7 +290,8 @@ export default function SubscriptionManager({
         <AISuggestions
           suggestions={suggestions}
           onCancel={(id) => {
-            handleCancelSubscription(id);
+            const sub = subscriptions.find((s) => s.id === id);
+            if (sub) handleCancelSubscription(sub);
           }}
         />
       )}
@@ -288,30 +324,41 @@ export default function SubscriptionManager({
       {showCreateForm && (
         <CreateServiceForm
           onSubmit={async (serviceData) => {
+            if (!account?.address) {
+              onError?.('Connect your wallet to create a subscription');
+              return;
+            }
             try {
               setLoading(true);
-              const newSubscription = await subscriptionAgent.addSubscription({
-                service: serviceData.service,
+              onSuccess?.('Creating subscription on-chain...');
+              const { subscriptionId: onChainId, txHash } = await contractSubscribe(
+                serviceData.recipientAddress,
+                serviceData.cost,
+                serviceData.frequency
+              );
+              await subscriptionApi.createSubscription({
+                serviceName: serviceData.service,
                 cost: serviceData.cost,
                 frequency: serviceData.frequency,
                 recipientAddress: serviceData.recipientAddress,
-                isActive: true,
+                userAddress: account.address,
                 autoPay: serviceData.autoPay,
+                onChainSubscriptionId: onChainId,
+                onChainContractAddress: SUBSCRIPTION_CONTRACT_ADDRESS || undefined,
               });
-              
-              onSuccess?.(`Service "${newSubscription.service}" created successfully!`);
+              onSuccess?.(`Subscription created on-chain. Tx: ${txHash.slice(0, 10)}...`);
               setShowCreateForm(false);
               await loadSubscriptions();
               loadSuggestions();
             } catch (error) {
-              console.error('Error creating service:', error);
-              onError?.(error instanceof Error ? error.message : 'Failed to create service');
+              console.error('Error creating subscription:', error);
+              onError?.(error instanceof Error ? error.message : 'Failed to create subscription');
             } finally {
               setLoading(false);
             }
           }}
           onCancel={() => setShowCreateForm(false)}
-          loading={loading}
+          loading={loading || contractPending}
         />
       )}
 
@@ -346,11 +393,11 @@ export default function SubscriptionManager({
               <SubscriptionCard
                 key={subscription.id}
                 subscription={subscription}
-                onCancel={() => handleCancelSubscription(subscription.id)}
+                onCancel={() => handleCancelSubscription(subscription)}
                 onToggleAutoPay={() => handleToggleAutoPay(subscription.id)}
                 onManualPay={() => handleManualPay(subscription)}
                 onEdit={() => handleEditSubscription(subscription)}
-                loading={loading}
+                loading={loading || payPending}
               />
             ))}
           </div>

@@ -4,7 +4,8 @@ Hardhat project for the on-chain subscription system used by the Bumpa frontend.
 
 ## Contracts
 
-- **SubscriptionManager**: Users subscribe to a recipient with a fixed amount and frequency (weekly/monthly/yearly). Payments are made in ERC20 (e.g. USDC). Events (`SubscriptionCreated`, `PaymentMade`, `SubscriptionCancelled`) allow the backend to index and sync with the existing API.
+- **SubscriptionManagerFLOW** (recommended): Same subscription model but **payments in native FLOW**. No ERC20; `pay(subscriptionId)` is `payable` and forwards FLOW to the recipient. Amounts in wei (18 decimals).
+- **SubscriptionManager**: ERC20-based (e.g. USDC). Use `SubscriptionManagerFLOW` for FLOW payments.
 
 ## Setup
 
@@ -18,19 +19,23 @@ yarn compile
 
 1. Create `.env` in `contracts/` with:
    ```
-   PRIVATE_KEY=0x...   # Deployer wallet private key
+   PRIVATE_KEY=0x...   # Deployer wallet private key (with FLOW for gas)
    ```
-2. Deploy:
+2. **Native FLOW (recommended):**
+   ```bash
+   yarn deploy:flow
+   ```
+   Deploys `SubscriptionManagerFLOW`. Copy the printed address.
+3. **ERC20 (USDC):**
    ```bash
    yarn deploy:testnet
    ```
-   (Uses Flow testnet by default; see `hardhat.config.ts` for `flow-testnet` network.)
-3. The app defaults to the deployed address below. To override, set in app `.env`:
+4. In the app `.env` you can override the address (optional; app default is set below):
    ```
    VITE_SUBSCRIPTION_CONTRACT_ADDRESS=<deployed address>
    ```
 
-**Current deployment (Flow EVM Testnet):** `0x470a1a866ef9f4dA1dbac367757AB62d94357f52`
+**Current SubscriptionManagerFLOW (Flow EVM Testnet):** `0x5ef3B3C4203E0900361886f450F803B5F443010D`
 
 ## Export ABI for frontend
 
@@ -42,10 +47,10 @@ npx hardhat run scripts/export-abi.ts
 
 This writes the ABI to `app/src/contracts/SubscriptionManager.json`. The app also has a minimal inline ABI in `subscriptionContract.ts` for direct use with viem.
 
-## Usage from frontend
+## Usage from frontend (SubscriptionManagerFLOW)
 
-- **Create subscription**: `subscribe(recipientAddress, amountPerCycleInBaseUnits, frequency)` where `frequency` is 0 = Weekly, 1 = Monthly, 2 = Yearly. USDC has 6 decimals (e.g. 10 USDC = 10e6).
-- **Pay**: User must first `approve(SubscriptionManager, amount)` on the USDC contract, then call `pay(subscriptionId)`.
+- **Create subscription**: `subscribe(recipientAddress, amountPerCycleWei, frequency)` where `frequency` is 0 = Weekly, 1 = Monthly, 2 = Yearly. Amount in wei (18 decimals, FLOW).
+- **Pay**: Send native FLOW with the transaction: `pay(subscriptionId)` with `value = amountPerCycle` (no approval).
 - **Cancel**: `cancel(subscriptionId)` (callable only by subscriber).
 
 Backend can listen for `PaymentMade` and call the existing `recordPayment` API with `transactionHash` to keep the database in sync.
@@ -60,4 +65,4 @@ yarn test
 
 - **Flow EVM Testnet**: chainId 545, RPC `https://testnet.evm.nodes.onflow.org`, Explorer `https://evm-testnet.flowscan.io`
 
-Set `USDC_ADDRESS` in `.env` for the payment token on Flow testnet if different from the default.
+For ERC20 deploy, set `USDC_ADDRESS` in `.env` if different from the default.

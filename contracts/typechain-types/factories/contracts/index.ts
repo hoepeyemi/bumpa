@@ -3,3 +3,4 @@
 /* eslint-disable */
 export { MockERC20__factory } from "./MockERC20__factory";
 export { SubscriptionManager__factory } from "./SubscriptionManager__factory";
+export { SubscriptionManagerFLOW__factory } from "./SubscriptionManagerFLOW__factory";

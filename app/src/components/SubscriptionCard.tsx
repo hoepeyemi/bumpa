@@ -49,7 +49,7 @@ export default function SubscriptionCard({
       <div className="subscription-card-header">
           <div className="subscription-service-info">
           <h3 className="subscription-service-name">{subscription.service}</h3>
-          <div className="subscription-cost">${subscription.cost.toFixed(3)} USDC / {getFrequencyLabel(subscription.frequency)}</div>
+          <div className="subscription-cost">{subscription.cost.toFixed(4)} FLOW / {getFrequencyLabel(subscription.frequency)}</div>
         </div>
         <div className="subscription-status-badges">
           {subscription.autoPay && (
@@ -105,7 +105,7 @@ export default function SubscriptionCard({
           onClick={onManualPay}
           disabled={loading}
         >
-          💳 Pay Now {subscription.cost > 0 && `($${subscription.cost.toFixed(3)} USDC)`}
+          💳 Pay Now {subscription.cost > 0 && `(${subscription.cost.toFixed(4)} FLOW)`}
         </button>
         {onEdit && (
           <button

@@ -20,6 +20,7 @@ export interface Subscription {
   nextPaymentDate: string;
   isActive: boolean;
   autoPay: boolean;
+  onChainSubscriptionId?: string | null; // SubscriptionManager contract id (uint256 as string)
   usageData?: {
     lastUsed?: string;
     usageCount?: number;
@@ -55,6 +56,8 @@ export interface CreateSubscriptionInput {
   recipientAddress: string;
   userAddress: string;
   autoPay?: boolean;
+  onChainSubscriptionId?: string;
+  onChainContractAddress?: string; // So we only show this subscription when using this contract
   usageData?: {
     lastUsed?: Date;
     usageCount?: number;
@@ -78,10 +81,11 @@ export interface UpdateSubscriptionInput {
 
 export const subscriptionApi = {
   /**
-   * Get all subscriptions for a user
+   * Get all subscriptions for a user. Pass contractAddress to only show subscriptions for the current contract.
    */
-  async getUserSubscriptions(userAddress: string): Promise<Subscription[]> {
-    const response = await api.get(`/subscriptions/user/${userAddress}`);
+  async getUserSubscriptions(userAddress: string, contractAddress?: string): Promise<Subscription[]> {
+    const params = contractAddress ? { contractAddress } : {};
+    const response = await api.get(`/subscriptions/user/${userAddress}`, { params });
     return response.data.data;
   },
 

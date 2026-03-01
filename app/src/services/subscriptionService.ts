@@ -1,19 +1,20 @@
 import { ThirdwebClient } from "thirdweb";
-import type { Chain } from "thirdweb";
 import { parseUnits } from "viem";
-import { loadSubscriptionsFromChain } from "./subscriptionContractService";
+import { createX402PaymentService, X402PaymentService, PaymentRequirements, USDC_TESTNET } from "./x402PaymentService";
 import { subscriptionApi, Subscription as ApiSubscription } from "./subscriptionApi";
+import { SUBSCRIPTION_CONTRACT_ADDRESS } from "../contracts/config";
 
 export interface Subscription {
   id: string;
   service: string;
-  cost: number; // in USDC
+  cost: number; // in FLOW
   frequency: 'monthly' | 'weekly' | 'yearly';
   recipientAddress: string; // Service provider wallet address
   lastPaymentDate: Date | null;
   nextPaymentDate: Date;
   isActive: boolean;
   autoPay: boolean;
+  onChainSubscriptionId?: string | null; // SubscriptionManager contract id when created on-chain
   usageData?: {
     lastUsed?: Date;
     usageCount?: number;
@@ -44,6 +45,7 @@ function apiToLocalSubscription(apiSub: ApiSubscription): Subscription {
     nextPaymentDate: new Date(apiSub.nextPaymentDate),
     isActive: apiSub.isActive,
     autoPay: apiSub.autoPay,
+    onChainSubscriptionId: apiSub.onChainSubscriptionId ?? undefined,
     usageData: apiSub.usageData ? {
       lastUsed: apiSub.usageData.lastUsed ? new Date(apiSub.usageData.lastUsed) : undefined,
       usageCount: apiSub.usageData.usageCount,
@@ -67,40 +69,24 @@ export interface AISuggestion {
 
 /**
  * Subscription Agent Service
- * Uses SubscriptionManager smart contract as source of truth (Flow EVM Testnet).
- * Create, pay, and cancel are done via contract; the UI sends transactions and then calls refresh().
+ * Manages crypto subscriptions and auto-payments
  */
 export class SubscriptionAgent {
   private subscriptions: Map<string, Subscription> = new Map();
   private paymentHistory: Map<string, Date[]> = new Map();
+  private x402Service: X402PaymentService;
   private userAddress: string | null = null;
 
-  constructor(
-    private client: ThirdwebClient,
-    private chain: Chain
-  ) {}
-
-  getClient(): ThirdwebClient {
-    return this.client;
-  }
-
-  getChain(): Chain {
-    return this.chain;
+  constructor(client: ThirdwebClient) {
+    this.x402Service = createX402PaymentService(client, 'flow-testnet');
   }
 
   /**
-   * Set user address and load subscriptions from chain
+   * Set user address and load subscriptions from API
    */
   async setUserAddress(userAddress: string) {
     this.userAddress = userAddress;
-    await this.loadFromContract();
-  }
-
-  /**
-   * Reload subscriptions from chain (call after subscribe / pay / cancel)
-   */
-  async refresh() {
-    await this.loadFromContract();
+    await this.loadFromAPI();
   }
 
   /**
@@ -118,38 +104,79 @@ export class SubscriptionAgent {
   }
 
   /**
-   * Load subscriptions from SubscriptionManager contract
+   * Load subscriptions from API
    */
-  async loadFromContract() {
+  async loadFromAPI() {
     if (!this.userAddress) {
       console.warn('User address not set, cannot load subscriptions');
       return;
     }
 
     try {
-      const subs = await loadSubscriptionsFromChain(this.client, this.chain, this.userAddress);
+      const contractAddress = SUBSCRIPTION_CONTRACT_ADDRESS || undefined;
+      const apiSubscriptions = await subscriptionApi.getUserSubscriptions(this.userAddress, contractAddress);
       this.subscriptions.clear();
-      subs.forEach(sub => this.subscriptions.set(sub.id, sub));
+      apiSubscriptions.forEach(apiSub => {
+        const localSub = apiToLocalSubscription(apiSub);
+        this.subscriptions.set(localSub.id, localSub);
+      });
     } catch (error) {
-      console.error('Failed to load subscriptions from contract:', error);
+      console.error('Failed to load subscriptions from API:', error);
     }
   }
 
   /**
-   * Add subscription is done on-chain by the UI (prepareSubscribe + sendTransaction). Then call refresh().
+   * Add a new subscription
    */
-  async addSubscription(_subscription: Omit<Subscription, 'id' | 'lastPaymentDate' | 'nextPaymentDate'>): Promise<Subscription> {
-    throw new Error('Use contract: call prepareSubscribe in the UI, send the transaction, then agent.refresh()');
+  async addSubscription(subscription: Omit<Subscription, 'id' | 'lastPaymentDate' | 'nextPaymentDate'>): Promise<Subscription> {
+    if (!this.userAddress) {
+      throw new Error('User address not set');
+    }
+
+    try {
+      const apiSub = await subscriptionApi.createSubscription({
+        serviceName: subscription.service,
+        cost: subscription.cost,
+        frequency: subscription.frequency,
+        recipientAddress: subscription.recipientAddress,
+        userAddress: this.userAddress,
+        autoPay: subscription.autoPay,
+        usageData: subscription.usageData,
+      });
+
+      const localSub = apiToLocalSubscription(apiSub);
+      this.subscriptions.set(localSub.id, localSub);
+      return localSub;
+    } catch (error) {
+      console.error('Failed to create subscription:', error);
+      throw error;
+    }
   }
 
   /**
-   * Contract does not support updating a subscription; create a new one and cancel the old if needed.
+   * Update an existing subscription
    */
   async updateSubscription(
-    _id: string,
-    _updates: Partial<Omit<Subscription, 'id' | 'lastPaymentDate' | 'nextPaymentDate'>>
+    id: string,
+    updates: Partial<Omit<Subscription, 'id' | 'lastPaymentDate' | 'nextPaymentDate'>>
   ): Promise<boolean> {
-    return false;
+    try {
+      const updateData: any = {};
+      if (updates.service !== undefined) updateData.serviceName = updates.service;
+      if (updates.cost !== undefined) updateData.cost = updates.cost;
+      if (updates.frequency !== undefined) updateData.frequency = updates.frequency;
+      if (updates.recipientAddress !== undefined) updateData.recipientAddress = updates.recipientAddress;
+      if (updates.autoPay !== undefined) updateData.autoPay = updates.autoPay;
+      if (updates.usageData !== undefined) updateData.usageData = updates.usageData;
+
+      const apiSub = await subscriptionApi.updateSubscription(id, updateData);
+      const localSub = apiToLocalSubscription(apiSub);
+      this.subscriptions.set(id, localSub);
+      return true;
+    } catch (error) {
+      console.error('Failed to update subscription:', error);
+      return false;
+    }
   }
 
   /**
@@ -195,10 +222,78 @@ export class SubscriptionAgent {
   }
 
   /**
-   * Pay is done on-chain by the UI (approve USDC + contract.pay). Use subscriptionContractService.preparePaySequence.
+   * Auto-pay a subscription via x402 protocol
    */
-  async autoPaySubscription(_account: any, _subscription: Subscription): Promise<PaymentResult> {
-    return { success: false, error: 'Use UI: send approve then pay transaction via contract' };
+  async autoPaySubscription(
+    account: any,
+    subscription: Subscription
+  ): Promise<PaymentResult> {
+    try {
+      if (!account?.address) {
+        return { success: false, error: 'Wallet not connected' };
+      }
+
+      // Convert cost to USDC base units (6 decimals for USDC)
+      // subscription.cost is in USDC (e.g., 0.01 USDC)
+      const amountInBaseUnits = parseUnits(subscription.cost.toString(), 6).toString();
+
+      // Create payment requirements for x402
+      const paymentRequirements: PaymentRequirements = {
+        scheme: 'exact',
+        network: 'flow-testnet',
+        payTo: subscription.recipientAddress,
+        asset: USDC_TESTNET,
+        maxAmountRequired: amountInBaseUnits,
+        maxTimeoutSeconds: 300, // 5 minutes
+        description: `Subscription payment for ${subscription.service}`,
+        mimeType: 'application/json',
+      };
+
+      // Pay using x402 protocol
+      const settleResult = await this.x402Service.pay(account, paymentRequirements);
+
+      if (settleResult.event === 'payment.failed') {
+        return {
+          success: false,
+          error: settleResult.error || 'Payment settlement failed',
+        };
+      }
+
+      // Record payment in database
+      try {
+        await subscriptionApi.recordPayment(
+          subscription.id,
+          subscription.cost,
+          settleResult.txHash || '',
+          'flow-testnet',
+          'completed'
+        );
+      } catch (error) {
+        console.error('Failed to record payment in database:', error);
+        // Continue even if recording fails
+      }
+
+      // Update local state
+      subscription.lastPaymentDate = new Date();
+      subscription.nextPaymentDate = this.getNextPaymentDate(subscription.frequency);
+      this.subscriptions.set(subscription.id, subscription);
+
+      // Track payment history
+      const history = this.paymentHistory.get(subscription.id) || [];
+      history.push(new Date());
+      this.paymentHistory.set(subscription.id, history);
+
+      return {
+        success: true,
+        transactionHash: settleResult.txHash,
+      };
+    } catch (error) {
+      console.error('Payment error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Payment failed',
+      };
+    }
   }
 
   /**
@@ -330,9 +425,10 @@ export class SubscriptionAgent {
 }
 
 /**
- * Factory: create subscription agent (contract as source of truth)
+ * Factory function to create subscription agent
+ * Loads subscriptions from localStorage automatically
  */
-export function createSubscriptionAgent(client: ThirdwebClient, chain: Chain): SubscriptionAgent {
-  return new SubscriptionAgent(client, chain);
+export function createSubscriptionAgent(client: ThirdwebClient): SubscriptionAgent {
+  return new SubscriptionAgent(client);
 }
 

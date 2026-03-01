@@ -5,7 +5,7 @@ import { NotificationButton } from "./components/NotificationButton";
 import { NotificationToasts } from "./components/NotificationCenter";
 import SubscriptionManager from "./components/SubscriptionManager";
 import RevenueAnalytics from "./pages/RevenueAnalytics";
-import USDCBalance from "./components/USDCBalance";
+import FLOWBalance from "./components/FLOWBalance";
 
 import {
   ThirdwebClient,
@@ -38,9 +38,9 @@ export default function App({ thirdwebClient }: AppProps) {
   const { notifySuccess, notifyError } = useNotificationHelpers();
   const [activeView, setActiveView] = useState<'subscriptions' | 'analytics'>('subscriptions');
 
-  // Initialize subscription agent (contract as source of truth)
+  // Initialize subscription agent
   const [subscriptionAgent] = useState<SubscriptionAgent>(() => 
-    createSubscriptionAgent(thirdwebClient, FLOW_TESTNET)
+    createSubscriptionAgent(thirdwebClient)
   );
 
   return (
@@ -56,7 +56,7 @@ export default function App({ thirdwebClient }: AppProps) {
           </div>
           <div className="header-actions">
             <NotificationButton />
-            <USDCBalance client={thirdwebClient} />
+            <FLOWBalance client={thirdwebClient} />
             <ConnectButton
               client={thirdwebClient}
               wallets={wallets}
@@ -86,6 +86,7 @@ export default function App({ thirdwebClient }: AppProps) {
         <div className="tab-content">
           {activeView === 'subscriptions' ? (
             <SubscriptionManager
+              client={thirdwebClient}
               subscriptionAgent={subscriptionAgent}
               onSuccess={(message) => {
                 notifySuccess('Success', message);
