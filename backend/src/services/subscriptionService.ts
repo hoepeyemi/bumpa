@@ -186,9 +186,9 @@ export class SubscriptionService {
       },
     });
 
-    // Invalidate caches
+    // Invalidate caches (pattern so we clear key with and without contract address suffix)
     await Promise.all([
-      cacheService.invalidate(CacheKeys.userSubscriptions(userAddress)),
+      cacheService.invalidatePattern(`${CacheKeys.userSubscriptions(userAddress)}*`),
       cacheService.invalidatePattern('stats:*'), // Invalidate all statistics
     ]);
 
@@ -240,7 +240,7 @@ export class SubscriptionService {
     // Invalidate caches
     await Promise.all([
       cacheService.invalidate(CacheKeys.subscription(id)),
-      cacheService.invalidate(CacheKeys.userSubscriptions(existingSubscription.userAddress)),
+      cacheService.invalidatePattern(`${CacheKeys.userSubscriptions(existingSubscription.userAddress)}*`),
       cacheService.invalidatePattern('stats:*'), // Invalidate all statistics
     ]);
 
@@ -269,7 +269,7 @@ export class SubscriptionService {
     // Invalidate caches
     await Promise.all([
       cacheService.invalidate(CacheKeys.subscription(id)),
-      cacheService.invalidate(CacheKeys.userSubscriptions(existingSubscription.userAddress)),
+      cacheService.invalidatePattern(`${CacheKeys.userSubscriptions(existingSubscription.userAddress)}*`),
       cacheService.invalidatePattern('stats:*'), // Invalidate all statistics
     ]);
 
@@ -296,7 +296,7 @@ export class SubscriptionService {
     // Invalidate caches
     await Promise.all([
       cacheService.invalidate(CacheKeys.subscription(id)),
-      cacheService.invalidate(CacheKeys.userSubscriptions(subscription.userAddress)),
+      cacheService.invalidatePattern(`${CacheKeys.userSubscriptions(subscription.userAddress)}*`),
     ]);
 
     return updated;
@@ -348,7 +348,7 @@ export class SubscriptionService {
     // Invalidate caches
     await Promise.all([
       cacheService.invalidate(CacheKeys.subscription(subscriptionId)),
-      cacheService.invalidate(CacheKeys.userSubscriptions(subscription.userAddress)),
+      cacheService.invalidatePattern(`${CacheKeys.userSubscriptions(subscription.userAddress)}*`),
       cacheService.invalidatePattern(`payments:subscription:${subscriptionId}*`), // Payment history
       cacheService.invalidatePattern('stats:*'), // All statistics
     ]);

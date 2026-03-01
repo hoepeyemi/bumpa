@@ -65,7 +65,8 @@ contract SubscriptionManagerFLOW is ReentrancyGuard {
         if (amountPerCycle == 0) revert InvalidAmount();
 
         subscriptionId = nextSubscriptionId++;
-        uint256 nextDueAt = _nextDue(block.timestamp, frequency);
+        // First payment due immediately; after each pay() we set nextDueAt to next period
+        uint256 nextDueAt = block.timestamp;
 
         subscriptions[subscriptionId] = Subscription({
             id: subscriptionId,

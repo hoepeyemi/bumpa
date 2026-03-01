@@ -35,7 +35,7 @@ yarn compile
    VITE_SUBSCRIPTION_CONTRACT_ADDRESS=<deployed address>
    ```
 
-**Current SubscriptionManagerFLOW (Flow EVM Testnet):** `0x5ef3B3C4203E0900361886f450F803B5F443010D`
+**Current SubscriptionManagerFLOW (Flow EVM Testnet):** `0xb2AC0Db5788B222c417F9C1353C5574bC8106C77`
 
 ## Export ABI for frontend
 

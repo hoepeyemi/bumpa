@@ -26,6 +26,8 @@ CREATE TABLE "subscriptions" (
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "autoPay" BOOLEAN NOT NULL DEFAULT false,
     "usageData" JSONB,
+    "onChainSubscriptionId" TEXT,
+    "onChainContractAddress" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -38,13 +40,16 @@ CREATE TABLE "payments" (
     "subscriptionId" TEXT NOT NULL,
     "amount" DECIMAL(18,6) NOT NULL,
     "transactionHash" TEXT NOT NULL,
-    "network" TEXT NOT NULL DEFAULT 'cronos-testnet',
+    "network" TEXT NOT NULL DEFAULT 'flow-testnet',
     "status" TEXT NOT NULL DEFAULT 'completed',
     "errorMessage" TEXT,
     "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "payments_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "subscriptions_onChainSubscriptionId_key" ON "subscriptions"("onChainSubscriptionId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "payments_transactionHash_key" ON "payments"("transactionHash");

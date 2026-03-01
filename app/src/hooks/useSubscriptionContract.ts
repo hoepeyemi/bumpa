@@ -6,6 +6,7 @@ import { useCallback, useState } from "react";
 import {
   getContract,
   prepareContractCall,
+  readContract,
   type ThirdwebClient,
 } from "thirdweb";
 import {
@@ -178,6 +179,7 @@ export function useSubscriptionContract(client: ThirdwebClient) {
 
 export function useSubscriptionContractPay(client: ThirdwebClient) {
   const { pay, isPending: contractPending } = useSubscriptionContract(client);
+  const contract = getSubscriptionManagerContract(client);
 
   /** Pay with native FLOW. No approval needed; send value with the pay() call. */
   const payWithApproval = useCallback(
@@ -186,6 +188,25 @@ export function useSubscriptionContractPay(client: ThirdwebClient) {
       amountFlow: number,
       subscriptionIdBackend: string
     ): Promise<{ txHash: string }> => {
+      // Check on-chain that payment is due (avoid PaymentNotDue revert)
+      const isDue = await readContract({
+        contract,
+        method: "isPaymentDue",
+        params: [BigInt(onChainSubscriptionId)],
+      });
+      if (!isDue) {
+        const sub = await readContract({
+          contract,
+          method: "getSubscription",
+          params: [BigInt(onChainSubscriptionId)],
+        });
+        // getSubscription returns (id, subscriber, recipient, amountPerCycle, frequency, nextDueAt, active, createdAt)
+        const nextDueAt = sub[5];
+        const dateStr = new Date(Number(nextDueAt) * 1000).toLocaleString();
+        throw new Error(
+          `Payment not due yet on-chain. Next due: ${dateStr}. You can pay again then.`
+        );
+      }
       const amountWei = parseUnits(amountFlow.toString(), FLOW_DECIMALS);
       const txHash = await pay(onChainSubscriptionId, amountWei);
       await subscriptionApi.recordPayment(
@@ -197,7 +218,7 @@ export function useSubscriptionContractPay(client: ThirdwebClient) {
       );
       return { txHash };
     },
-    [pay]
+    [contract, pay]
   );
 
   return { payWithApproval, pay, isPending: contractPending };

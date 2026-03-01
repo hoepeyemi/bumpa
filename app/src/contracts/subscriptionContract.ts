@@ -98,6 +98,15 @@ export const SUBSCRIPTION_ABI_FLOW = [
     name: "SubscriptionCancelled",
     type: "event",
   },
+  // Custom errors (SubscriptionManagerFLOW) so reverts decode
+  { type: "error", name: "InvalidRecipient", inputs: [] },
+  { type: "error", name: "InvalidAmount", inputs: [] },
+  { type: "error", name: "SubscriptionNotFound", inputs: [] },
+  { type: "error", name: "SubscriptionInactive", inputs: [] },
+  { type: "error", name: "NotSubscriber", inputs: [] },
+  { type: "error", name: "PaymentNotDue", inputs: [] },
+  { type: "error", name: "InsufficientValue", inputs: [] },
+  { type: "error", name: "TransferFailed", inputs: [] },
 ] as const;
 
 /** @deprecated Use SUBSCRIPTION_ABI_FLOW for native FLOW. Kept for reference (ERC20 contract). */

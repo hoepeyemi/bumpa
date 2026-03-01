@@ -529,8 +529,8 @@
       ]
     },
     "C:\\Users\\jwavo\\bumpa\\contracts\\contracts\\SubscriptionManagerFLOW.sol": {
-      "lastModificationDate": 1772362341951,
-      "contentHash": "ed9e65d3c0c8efdee8195b7871c9b3e5",
+      "lastModificationDate": 1772371083437,
+      "contentHash": "644c68de33723af5ac97fda5baac2f1d",
       "sourceName": "contracts/SubscriptionManagerFLOW.sol",
       "solcConfig": {
         "version": "0.8.24",

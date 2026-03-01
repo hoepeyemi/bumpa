@@ -35,6 +35,7 @@
     "start": "npx ts-node src/index.ts",
     "dev": "ts-node src/index.ts",
     "build": "tsc",
+    "clear-db": "ts-node src/scripts/clear-database.ts",
     "test:yakoa": "ts-node src/scripts/test-yakoa.ts",
     "test:yakoa:unique": "ts-node src/yakoa/test-unique.ts",
     "yakoa:register": "ts-node src/yakoa/index.ts"

@@ -229,7 +229,25 @@ export default function SubscriptionManager({
       await loadSubscriptions();
     } catch (error) {
       console.error('Payment error:', error);
-      onError?.(`Payment failed: ${error instanceof Error ? error.message : 'Unknown error'}. Ensure sufficient FLOW balance.`);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      // Friendly messages for known cases
+      if (message.includes('Payment not due yet on-chain')) {
+        onError?.(message);
+        return;
+      }
+      if (message.includes('PaymentNotDue') || message.includes('TransactionError: PaymentNotDue')) {
+        onError?.('This payment isn’t due yet on-chain. The button will work when the next due date is reached.');
+        return;
+      }
+      const isAbiDecodeError =
+        message.includes('AbiErrorSignatureNotFoundError') ||
+        message.includes('0x00a71fbb') ||
+        message.includes('not found on ABI');
+      onError?.(
+        isAbiDecodeError
+          ? 'Payment failed. Ensure you have enough FLOW, the subscription is due, and you are the subscriber.'
+          : `Payment failed: ${message}. Ensure sufficient FLOW balance.`
+      );
     } finally {
       setLoading(false);
     }
