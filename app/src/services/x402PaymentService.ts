@@ -26,44 +26,12 @@ export const FLOW_TESTNET = {
   }],
 };
 
-export const CRONOS_TESTNET = {
-  id: 338,
-  name: 'Cronos Testnet',
-  nativeCurrency: {
-    name: 'CRO',
-    symbol: 'CRO',
-    decimals: 18,
-  },
-  rpc: 'https://evm-t3.cronos.org',
-  rpcUrls: {
-    default: { http: ['https://evm-t3.cronos.org'] },
-    public: { http: ['https://evm-t3.cronos.org'] },
-  },
-  blockExplorers: [{ name: 'Cronos Testnet Explorer', url: 'https://explorer.cronos.org/testnet' }],
-};
-
-export const CRONOS_MAINNET = {
-  id: 25,
-  name: 'Cronos Mainnet',
-  nativeCurrency: {
-    name: 'CRO',
-    symbol: 'CRO',
-    decimals: 18,
-  },
-  rpc: 'https://evm.cronos.org',
-  rpcUrls: {
-    default: { http: ['https://evm.cronos.org'] },
-    public: { http: ['https://evm.cronos.org'] },
-  },
-  blockExplorers: [{ name: 'Cronos Explorer', url: 'https://explorer.cronos.org' }],
-};
-
 // Token Contracts
 export const USDC_TESTNET = '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0';
 export const USDC_MAINNET = '0xf951eC28187D9E5Ca673Da8FE6757E6f0Be5F77C';
 
-// Facilitator URL
-export const FACILITATOR_URL = 'https://facilitator.cronoslabs.org/v2/x402';
+// Facilitator URL (set VITE_FACILITATOR_URL in .env for payment settlement)
+export const FACILITATOR_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_FACILITATOR_URL) || '';
 
 // EIP-712 Domain for USDC (default - actual domain is queried from contract)
 // Note: We're using USDC.e (not USDX), so the domain is typically "USD Coin"
@@ -136,11 +104,8 @@ export interface SettleResponse {
  * Handles payment header generation, verification, and settlement
  */
 export class X402PaymentService {
-  private network: 'flow-testnet' | 'cronos-testnet' | 'cronos-mainnet';
-
-  constructor(_client: ThirdwebClient, network: 'flow-testnet' | 'cronos-testnet' | 'cronos-mainnet' = 'flow-testnet') {
-    // Client is kept for potential future use
-    this.network = network;
+  constructor(_client: ThirdwebClient, _network: 'flow-testnet' = 'flow-testnet') {
+    // Only Flow EVM Testnet is supported; _network kept for API compatibility.
   }
 
   /**
@@ -160,11 +125,7 @@ export class X402PaymentService {
    * Tries multiple methods to get the domain name
    */
   private async getTokenDomain(asset: string): Promise<{ name: string; version: string } | null> {
-    const rpcUrl = this.network === 'flow-testnet'
-      ? 'https://testnet.evm.nodes.onflow.org'
-      : this.network === 'cronos-testnet'
-        ? 'https://evm-t3.cronos.org'
-        : 'https://evm.cronos.org';
+    const rpcUrl = 'https://testnet.evm.nodes.onflow.org';
     const provider = new ethers.JsonRpcProvider(rpcUrl);
     
     try {
@@ -238,8 +199,8 @@ export class X402PaymentService {
     const validAfter = 0; // Valid immediately
     const validBefore = Math.floor(Date.now() / 1000) + maxTimeoutSeconds;
 
-    // Get chain ID as number (required for EIP-712)
-    const chainId = this.network === 'flow-testnet' ? 545 : this.network === 'cronos-testnet' ? 338 : 25;
+    // Get chain ID as number (required for EIP-712) - Flow EVM Testnet
+    const chainId = 545;
 
     // Try to get the actual domain from the contract, fallback to common values
     // For USDC.e (0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0), the domain is typically "USD Coin"
@@ -267,7 +228,7 @@ export class X402PaymentService {
     }
     
     console.log('Using EIP-712 domain name:', domainName, 'version:', domainVersion);
-    console.log('Token contract:', asset, this.network === 'flow-testnet' ? '(Flow EVM Testnet)' : '(Cronos)');
+    console.log('Token contract:', asset, '(Flow EVM Testnet)');
 
     // Set up EIP-712 domain
     // The domain name must match the token contract's EIP-712 domain exactly
@@ -464,11 +425,7 @@ export class X402PaymentService {
     types: any,
     message: any
   ): Promise<string> {
-    const rpcUrl = this.network === 'flow-testnet'
-      ? 'https://testnet.evm.nodes.onflow.org'
-      : this.network === 'cronos-testnet'
-        ? 'https://evm-t3.cronos.org'
-        : 'https://evm.cronos.org';
+    const rpcUrl = 'https://testnet.evm.nodes.onflow.org';
     try {
       const provider = this.getPreferredEVMProvider();
       if (provider) {
@@ -476,7 +433,7 @@ export class X402PaymentService {
           const ethersProvider = new ethers.BrowserProvider(provider);
           await provider.request({ method: 'eth_requestAccounts' });
           const network = await ethersProvider.getNetwork();
-          const expectedChainId = this.network === 'flow-testnet' ? 545n : this.network === 'cronos-testnet' ? 338n : 25n;
+          const expectedChainId = 545n;
           if (network.chainId !== expectedChainId) {
             console.warn(`Network mismatch: expected ${expectedChainId}, got ${network.chainId}`);
             try {
@@ -486,29 +443,13 @@ export class X402PaymentService {
               });
             } catch (switchError: any) {
               if (switchError.code === 4902) {
-                const chainConfig = this.network === 'flow-testnet'
-                  ? {
-                      chainId: `0x${expectedChainId.toString(16)}`,
-                      chainName: 'Flow EVM Testnet',
-                      nativeCurrency: { name: 'FLOW', symbol: 'FLOW', decimals: 18 },
-                      rpcUrls: ['https://testnet.evm.nodes.onflow.org'],
-                      blockExplorerUrls: ['https://evm-testnet.flowscan.io'],
-                    }
-                  : this.network === 'cronos-testnet'
-                    ? {
-                        chainId: `0x${expectedChainId.toString(16)}`,
-                        chainName: 'Cronos Testnet',
-                        nativeCurrency: { name: 'CRO', symbol: 'CRO', decimals: 18 },
-                        rpcUrls: ['https://evm-t3.cronos.org'],
-                        blockExplorerUrls: ['https://explorer.cronos.org/testnet'],
-                      }
-                    : {
-                        chainId: `0x${expectedChainId.toString(16)}`,
-                        chainName: 'Cronos Mainnet',
-                        nativeCurrency: { name: 'CRO', symbol: 'CRO', decimals: 18 },
-                        rpcUrls: ['https://evm.cronos.org'],
-                        blockExplorerUrls: ['https://explorer.cronos.org'],
-                      };
+                const chainConfig = {
+                  chainId: `0x${expectedChainId.toString(16)}`,
+                  chainName: 'Flow EVM Testnet',
+                  nativeCurrency: { name: 'FLOW', symbol: 'FLOW', decimals: 18 },
+                  rpcUrls: ['https://testnet.evm.nodes.onflow.org'],
+                  blockExplorerUrls: ['https://evm-testnet.flowscan.io'],
+                };
                 await provider.request({
                   method: 'wallet_addEthereumChain',
                   params: [chainConfig],
@@ -581,6 +522,9 @@ export class X402PaymentService {
     paymentHeader: string,
     paymentRequirements: PaymentRequirements
   ): Promise<VerifyResponse> {
+    if (!FACILITATOR_URL) {
+      return { isValid: false, invalidReason: 'VITE_FACILITATOR_URL is not set' };
+    }
     try {
       // Decode payment header for debugging
       const decodedHeader = JSON.parse(Buffer.from(paymentHeader, 'base64').toString());
@@ -681,6 +625,15 @@ export class X402PaymentService {
     paymentHeader: string,
     paymentRequirements: PaymentRequirements
   ): Promise<SettleResponse> {
+    if (!FACILITATOR_URL) {
+      return {
+        x402Version: 1,
+        event: 'payment.failed',
+        network: paymentRequirements.network,
+        timestamp: new Date().toISOString(),
+        error: 'VITE_FACILITATOR_URL is not set',
+      };
+    }
     try {
       const response = await axios.post<SettleResponse>(
         `${FACILITATOR_URL}/settle`,
@@ -714,8 +667,12 @@ export class X402PaymentService {
    * Health check
    */
   async healthCheck(): Promise<any> {
+    if (!FACILITATOR_URL) {
+      return { ok: false, message: 'VITE_FACILITATOR_URL not set' };
+    }
     try {
-      const response = await axios.get('https://facilitator.cronoslabs.org/healthcheck');
+      const base = FACILITATOR_URL.replace(/\/v2\/x402\/?$/, '');
+      const response = await axios.get(`${base}/healthcheck`);
       return response.data;
     } catch (error) {
       console.error('Health check error:', error);
@@ -805,7 +762,7 @@ export class X402PaymentService {
  */
 export function createX402PaymentService(
   client: ThirdwebClient,
-  network: 'flow-testnet' | 'cronos-testnet' | 'cronos-mainnet' = 'flow-testnet'
+  network: 'flow-testnet' = 'flow-testnet'
 ): X402PaymentService {
   return new X402PaymentService(client, network);
 }

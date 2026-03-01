@@ -4,7 +4,14 @@ import { ethers } from "hardhat";
 const USDC_DEFAULT = "0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0";
 
 async function main() {
-  const [deployer] = await ethers.getSigners();
+  const signers = await ethers.getSigners();
+  const deployer = signers[0];
+  if (!deployer) {
+    throw new Error(
+      "No deployer account. Set PRIVATE_KEY in contracts/.env (e.g. PRIVATE_KEY=0x...). " +
+      "Use the private key of a wallet that has FLOW for gas on Flow EVM Testnet."
+    );
+  }
   console.log("Deploying SubscriptionManager with account:", deployer.address);
 
   const paymentToken = process.env.USDC_ADDRESS || USDC_DEFAULT;

@@ -25,10 +25,12 @@ yarn compile
    yarn deploy:testnet
    ```
    (Uses Flow testnet by default; see `hardhat.config.ts` for `flow-testnet` network.)
-3. Set in app `.env`:
+3. The app defaults to the deployed address below. To override, set in app `.env`:
    ```
    VITE_SUBSCRIPTION_CONTRACT_ADDRESS=<deployed address>
    ```
+
+**Current deployment (Flow EVM Testnet):** `0x470a1a866ef9f4dA1dbac367757AB62d94357f52`
 
 ## Export ABI for frontend
 
@@ -56,8 +58,6 @@ yarn test
 
 ## Network config
 
-- **Flow EVM Testnet** (default): chainId 545, RPC `https://testnet.evm.nodes.onflow.org`, Explorer `https://evm-testnet.flowscan.io`
-- **Cronos Testnet**: chainId 338, RPC `https://evm-t3.cronos.org`
-- **Cronos Mainnet**: chainId 25, RPC `https://evm.cronos.org`
+- **Flow EVM Testnet**: chainId 545, RPC `https://testnet.evm.nodes.onflow.org`, Explorer `https://evm-testnet.flowscan.io`
 
-USDC: set `USDC_ADDRESS` in `.env` for the token on your target network (e.g. Flow testnet may use a different stablecoin address).
+Set `USDC_ADDRESS` in `.env` for the payment token on Flow testnet if different from the default.

@@ -4,7 +4,7 @@ import { networkInfo, NATIVE_TOKEN_ADDRESS } from './config'
 
 dotenv.config()
 
-// Use native CRO token as WIP_TOKEN_ADDRESS
+// Use native FLOW token as WIP_TOKEN_ADDRESS
 export const WIP_TOKEN_ADDRESS: Address = NATIVE_TOKEN_ADDRESS
 
 // Export contract addresses with appropriate defaults based on network

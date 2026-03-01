@@ -34,8 +34,8 @@ PORT=5000
 # Optional: Wallet Configuration (for contract interactions)
 # WALLET_PRIVATE_KEY=0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
 
-# Optional: RPC Configuration (Cronos Testnet)
-# RPC_PROVIDER_URL=https://evm-t3.cronos.org
+# Optional: RPC Configuration (Flow EVM Testnet)
+# RPC_PROVIDER_URL=https://testnet.evm.nodes.onflow.org
 
 # Optional: Pinata IPFS Configuration
 # PINATA_JWT=
@@ -43,7 +43,7 @@ PORT=5000
 # Optional: Yakoa API Configuration
 # YAKOA_API_KEY=
 # YAKOA_SUBDOMAIN=
-# YAKOA_NETWORK=cronos_testnet
+# YAKOA_NETWORK=flow_testnet
 
 # Optional: NFT Contract Configuration
 # NFT_CONTRACT_ADDRESS=0x0000000000000000000000000000000000000000

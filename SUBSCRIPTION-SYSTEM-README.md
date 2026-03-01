@@ -292,7 +292,7 @@ REDIS_HOST=host
 REDIS_PORT=port
 
 # x402 Configuration
-FACILITATOR_URL=https://facilitator.cronoslabs.org/v2/x402
+FACILITATOR_URL=<your-payment-facilitator-url>   # Optional; for x402 settlement on Flow
 USDC_MINT_TESTNET=0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0
 ```
 

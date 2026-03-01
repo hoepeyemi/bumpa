@@ -14,7 +14,7 @@ import axios from 'axios';
 const subscriptionService = new SubscriptionService();
 
 // x402 Payment Facilitator URL
-const FACILITATOR_URL = process.env.FACILITATOR_URL || 'https://facilitator.cronoslabs.org/v2/x402';
+const FACILITATOR_URL = process.env.FACILITATOR_URL || '';
 const USDC_TESTNET = process.env.USDC_MINT_TESTNET || '0xc01efAaF7C5C61bEbFAeb358E1161b537b8bC0e0';
 
 interface PaymentResult {

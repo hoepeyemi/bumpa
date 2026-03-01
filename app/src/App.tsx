@@ -38,9 +38,9 @@ export default function App({ thirdwebClient }: AppProps) {
   const { notifySuccess, notifyError } = useNotificationHelpers();
   const [activeView, setActiveView] = useState<'subscriptions' | 'analytics'>('subscriptions');
 
-  // Initialize subscription agent
+  // Initialize subscription agent (contract as source of truth)
   const [subscriptionAgent] = useState<SubscriptionAgent>(() => 
-    createSubscriptionAgent(thirdwebClient)
+    createSubscriptionAgent(thirdwebClient, FLOW_TESTNET)
   );
 
   return (

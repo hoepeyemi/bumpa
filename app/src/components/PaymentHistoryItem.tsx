@@ -49,14 +49,8 @@ export default function PaymentHistoryItem({ payment, serviceName }: PaymentHist
     }
   };
 
-  const getExplorerUrl = (hash: string, network: string) => {
-    if (network.includes('flow')) {
-      return `https://evm-testnet.flowscan.io/tx/${hash}`;
-    }
-    if (network.includes('cronos')) {
-      return `https://explorer.cronos.org/testnet/tx/${hash}`;
-    }
-    return `https://explorer.cronos.org/tx/${hash}`;
+  const getExplorerUrl = (hash: string, _network?: string) => {
+    return `https://evm-testnet.flowscan.io/tx/${hash}`;
   };
 
   const dateInfo = formatDate(payment.timestamp);
