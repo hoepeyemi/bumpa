@@ -5,6 +5,7 @@ import { NotificationButton } from "./components/NotificationButton";
 import { NotificationToasts } from "./components/NotificationCenter";
 import SubscriptionManager from "./components/SubscriptionManager";
 import RevenueAnalytics from "./pages/RevenueAnalytics";
+import Landing from "./pages/Landing";
 import FLOWBalance from "./components/FLOWBalance";
 
 import {
@@ -36,12 +37,17 @@ interface AppProps {
 
 export default function App({ thirdwebClient }: AppProps) {
   const { notifySuccess, notifyError } = useNotificationHelpers();
+  const [showLanding, setShowLanding] = useState(true);
   const [activeView, setActiveView] = useState<'subscriptions' | 'analytics'>('subscriptions');
 
   // Initialize subscription agent
   const [subscriptionAgent] = useState<SubscriptionAgent>(() => 
     createSubscriptionAgent(thirdwebClient)
   );
+
+  if (showLanding) {
+    return <Landing onEnterApp={() => setShowLanding(false)} />;
+  }
 
   return (
     <div className="app">
@@ -52,7 +58,9 @@ export default function App({ thirdwebClient }: AppProps) {
       <header className="header">
         <div className="header-container">
           <div className="header-logo">
-            <h1>🤖 Smart Subscription Manager</h1>
+            <button type="button" className="header-logo-link" onClick={() => setShowLanding(true)}>
+              🤖 Bumpa
+            </button>
           </div>
           <div className="header-actions">
             <NotificationButton />

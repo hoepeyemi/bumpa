@@ -2840,6 +2840,21 @@
     "@walletconnect/window-getters" "^1.0.1"
     tslib "1.14.1"
 
+"@zama-fhe/relayer-sdk@^0.4.1":
+  version "0.4.1"
+  resolved "https://registry.yarnpkg.com/@zama-fhe/relayer-sdk/-/relayer-sdk-0.4.1.tgz#981a7059ba53d29c0ca16790771f8aff2b2e9043"
+  integrity sha512-bS7tVQbXnsPFgiqm5R4pJ8hbPMYZuRh/Pv89S+jxO60y0mD296F4qIKEO7dgiHjC87V5GFM9DqCLNejjCNVw2Q==
+  dependencies:
+    commander "^14.0.0"
+    ethers "^6.15.0"
+    fetch-retry "^6.0.0"
+    keccak "^3.0.4"
+    node-tfhe "1.4.0-alpha.3"
+    node-tkms "^0.12.0"
+    tfhe "1.4.0-alpha.3"
+    tkms "^0.12.0"
+    wasm-feature-detect "^1.8.0"
+
 abitype@1.0.8:
   version "1.0.8"
   resolved "https://registry.yarnpkg.com/abitype/-/abitype-1.0.8.tgz#3554f28b2e9d6e9f35eb59878193eabd1b9f46ba"
@@ -4155,6 +4170,11 @@ fastq@^1.6.0:
   dependencies:
     reusify "^1.0.4"
 
+fetch-retry@^6.0.0:
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/fetch-retry/-/fetch-retry-6.0.0.tgz#4ffdf92c834d72ae819e42a4ee2a63f1e9454426"
+  integrity sha512-BUFj1aMubgib37I3v4q78fYo63Po7t4HUPTpQ6/QE6yK6cIQrP+W43FYToeTEyg5m2Y7eFUtijUuAv/PDlWuag==
+
 figlet@^1.8.2:
   version "1.9.4"
   resolved "https://registry.yarnpkg.com/figlet/-/figlet-1.9.4.tgz#2f642d6ba473b186cb6b9052c180045ba638685d"
@@ -4736,7 +4756,7 @@ json5@^2.2.3:
   resolved "https://registry.yarnpkg.com/json5/-/json5-2.2.3.tgz#78cd6f1a19bdc12b73db5ad0c61efd66c1e29283"
   integrity sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg==
 
-keccak@^3.0.3:
+keccak@^3.0.3, keccak@^3.0.4:
   version "3.0.4"
   resolved "https://registry.yarnpkg.com/keccak/-/keccak-3.0.4.tgz#edc09b89e633c0549da444432ecf062ffadee86d"
   integrity sha512-3vKuW0jV8J3XNTzvfyicFR5qvxrSAGl7KIhvgOu5cmWwM7tZRj3fMbj/pfIf4be7aznbc+prBWGjywox/g2Y6Q==
@@ -5083,6 +5103,16 @@ node-stdlib-browser@^1.2.0:
     url "^0.11.4"
     util "^0.12.4"
     vm-browserify "^1.0.1"
+
+node-tfhe@1.4.0-alpha.3:
+  version "1.4.0-alpha.3"
+  resolved "https://registry.yarnpkg.com/node-tfhe/-/node-tfhe-1.4.0-alpha.3.tgz#9e8d8afbd13ea7b0c00283f6929bf0a7af9787e3"
+  integrity sha512-oTcWL0OFA6t6BhScmDiGQ3VA8tU8T3EXCzIzpNxQxcuJDgQtiUF5CV6dgJLOrpWck4KCp1Bo/xLhv07uwn3q6Q==
+
+node-tkms@^0.12.0:
+  version "0.12.8"
+  resolved "https://registry.yarnpkg.com/node-tkms/-/node-tkms-0.12.8.tgz#6d1b04f3c43006fdcbdbcc44b9129685856da98a"
+  integrity sha512-4erFxgbSVm1HCohIN2qijDfQL2GoIGaBve7SDeIKTu2bNBZZdTRKatcW+ExwHZF5MC6CzGDTvJQhEnG9LD7T3w==
 
 normalize-path@^3.0.0:
   version "3.0.0"
@@ -6229,6 +6259,11 @@ tar-stream@^2.1.4:
     inherits "^2.0.3"
     readable-stream "^3.1.1"
 
+tfhe@1.4.0-alpha.3:
+  version "1.4.0-alpha.3"
+  resolved "https://registry.yarnpkg.com/tfhe/-/tfhe-1.4.0-alpha.3.tgz#e00e20f3e12b302b49c2fecc336faa6a05639462"
+  integrity sha512-xdla7hi2WzLFIdAx2/ihRZ/bKlKcgDDabTJGtoqp1E5oqhLM1PzTXsJE0p7tW8+ebrvxiMGfbgMAWnU3f2ZAIQ==
+
 thirdweb@^5.73.0:
   version "5.108.3"
   resolved "https://registry.yarnpkg.com/thirdweb/-/thirdweb-5.108.3.tgz#2d0015ebd6e8cef43c921ceacc7dd467e2bb0f7e"
@@ -6292,6 +6327,11 @@ tinygradient@^1.1.5:
   dependencies:
     "@types/tinycolor2" "^1.4.0"
     tinycolor2 "^1.0.0"
+
+tkms@^0.12.0:
+  version "0.12.8"
+  resolved "https://registry.yarnpkg.com/tkms/-/tkms-0.12.8.tgz#9d108d03b3b23efa1ae4bd48be4a41b97d53aa1f"
+  integrity sha512-iXS8wxz3jhx3JlKVJiBZUOibGtP69lC2H9I120EfhAI5amc/4xW/HCM7tmMtBJEuqdCoN5ssnHvfGog8gZ6UKg==
 
 to-buffer@^1.2.0, to-buffer@^1.2.1, to-buffer@^1.2.2:
   version "1.2.2"
@@ -6647,6 +6687,11 @@ wagmi@^2.15.6:
     "@wagmi/connectors" "5.11.2"
     "@wagmi/core" "2.21.2"
     use-sync-external-store "1.4.0"
+
+wasm-feature-detect@^1.8.0:
+  version "1.8.0"
+  resolved "https://registry.yarnpkg.com/wasm-feature-detect/-/wasm-feature-detect-1.8.0.tgz#4e9f55b0a64d801f372fbb0324ed11ad3abd0c78"
+  integrity sha512-zksaLKM2fVlnB5jQQDqKXXwYHLQUVH9es+5TOOHwGOVJOCeRBCiPjwSg+3tN2AdTCzjgli4jijCH290kXb/zWQ==
 
 "webextension-polyfill@>=0.10.0 <1.0":
   version "0.12.0"

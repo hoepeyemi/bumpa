@@ -1,20 +1,25 @@
 import { useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
+import { CONFIDENTIAL_SUBSCRIPTION_CONTRACT_ADDRESS } from "../contracts/config";
 import "./CreateServiceForm.css";
 
-interface ServiceFormData {
+export interface ServiceFormData {
   service: string;
   cost: number;
   frequency: 'monthly' | 'weekly' | 'yearly';
   recipientAddress: string;
   autoPay: boolean;
+  /** When true, create a confidential (FHE) subscription on Sepolia. */
+  isPrivate?: boolean;
+  /** When set, subscribe to this existing service (API uses it instead of creating a new one). */
+  serviceId?: string;
 }
 
 interface CreateServiceFormProps {
   onSubmit: (service: ServiceFormData) => void;
   onCancel: () => void;
   loading?: boolean;
-  initialData?: ServiceFormData; // For editing
+  initialData?: ServiceFormData & { serviceId?: string }; // For editing or subscribing to existing service
 }
 
 export default function CreateServiceForm({
@@ -24,12 +29,14 @@ export default function CreateServiceForm({
   initialData,
 }: CreateServiceFormProps) {
   const account = useActiveAccount();
-  const isEditMode = !!initialData;
+  const isEditMode = !!initialData && !(initialData as { serviceId?: string }).serviceId;
+  const existingServiceId = (initialData as { serviceId?: string } | undefined)?.serviceId;
   const [serviceName, setServiceName] = useState(initialData?.service || '');
   const [cost, setCost] = useState(initialData?.cost.toString() || '');
-  const [frequency, setFrequency] = useState<'monthly' | 'weekly' | 'yearly'>(initialData?.frequency || 'monthly');
+  const [frequency, setFrequency] = useState<'monthly' | 'weekly' | 'yearly'>((initialData?.frequency as 'monthly' | 'weekly' | 'yearly') || 'monthly');
   const [recipientAddress, setRecipientAddress] = useState(initialData?.recipientAddress || account?.address || '');
   const [autoPay, setAutoPay] = useState(initialData?.autoPay ?? true);
+  const [isPrivate, setIsPrivate] = useState(initialData?.isPrivate ?? false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateForm = (): boolean => {
@@ -67,6 +74,8 @@ export default function CreateServiceForm({
       frequency,
       recipientAddress: recipientAddress.trim(),
       autoPay,
+      isPrivate,
+      ...(existingServiceId ? { serviceId: existingServiceId } : {}),
     });
   };
 
@@ -81,7 +90,7 @@ export default function CreateServiceForm({
     <div className="create-service-form-overlay">
       <div className="create-service-form card">
         <div className="form-header">
-          <h2>{isEditMode ? '✏️ Edit Service' : '➕ Create New Service'}</h2>
+          <h2>{isEditMode ? '✏️ Edit Service' : existingServiceId ? '📌 Subscribe to Service' : '➕ Create New Service'}</h2>
           <button
             type="button"
             className="btn-close"
@@ -116,7 +125,7 @@ export default function CreateServiceForm({
           <div className="form-group-row">
             <div className="form-group">
               <label className="form-label">
-                Cost (FLOW) <span className="required">*</span>
+                Cost ({isPrivate ? "ETH" : "FLOW"}) <span className="required">*</span>
               </label>
               <input
                 type="number"
@@ -188,6 +197,22 @@ export default function CreateServiceForm({
             </div>
           </div>
 
+          {CONFIDENTIAL_SUBSCRIPTION_CONTRACT_ADDRESS && !isEditMode && (
+            <div className="form-group">
+              <label className="checkbox-group">
+                <input
+                  type="checkbox"
+                  className="checkbox-input"
+                  checked={isPrivate}
+                  onChange={(e) => setIsPrivate(e.target.checked)}
+                  disabled={loading}
+                />
+                <span className="checkbox-label">
+                  Private subscription (Zama FHE on Sepolia — amount hidden on-chain)
+                </span>
+              </label>
+            </div>
+          )}
           <div className="form-group">
             <label className="checkbox-group">
               <input

@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import type { ThirdwebClient } from "thirdweb";
 import { SubscriptionAgent, Subscription, AISuggestion } from "../services/subscriptionService";
-import { subscriptionApi, Payment } from "../services/subscriptionApi";
+import { subscriptionApi, Payment, Service } from "../services/subscriptionApi";
 import { useSubscriptionContract, useSubscriptionContractPay } from "../hooks/useSubscriptionContract";
-import { SUBSCRIPTION_CONTRACT_ADDRESS } from "../contracts/config";
+import { useConfidentialSubscription } from "../hooks/useConfidentialSubscription";
+import { SUBSCRIPTION_CONTRACT_ADDRESS, CONFIDENTIAL_SUBSCRIPTION_CONTRACT_ADDRESS } from "../contracts/config";
 import SubscriptionCard from "./SubscriptionCard";
 import AISuggestions from "./AISuggestions";
 import CreateServiceForm from "./CreateServiceForm";
@@ -27,6 +28,7 @@ export default function SubscriptionManager({
   const account = useActiveAccount();
   const { subscribe: contractSubscribe, cancel: contractCancel, isPending: contractPending } = useSubscriptionContract(client);
   const { payWithApproval, isPending: payPending } = useSubscriptionContractPay(client);
+  const { subscribe: confidentialSubscribe, isPending: confidentialPending } = useConfidentialSubscription();
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [suggestions, setSuggestions] = useState<AISuggestion[]>([]);
   const [loading, setLoading] = useState(false);
@@ -35,6 +37,9 @@ export default function SubscriptionManager({
   const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
   const [paymentHistory, setPaymentHistory] = useState<Map<string, Payment[]>>(new Map());
   const [loadingPayments, setLoadingPayments] = useState(false);
+  const [allServices, setAllServices] = useState<Service[]>([]);
+  const [loadingServices, setLoadingServices] = useState(false);
+  const [subscribeToService, setSubscribeToService] = useState<Service | null>(null);
 
   useEffect(() => {
     if (account?.address) {
@@ -42,9 +47,11 @@ export default function SubscriptionManager({
         loadSubscriptions();
         loadSuggestions();
       });
+      loadAllServices();
     } else {
       setSubscriptions([]);
       setSuggestions([]);
+      setAllServices([]);
     }
     
     // Auto-check every minute
@@ -101,6 +108,19 @@ export default function SubscriptionManager({
       setSuggestions(aiSuggestions);
     } catch (error) {
       console.error('Error loading suggestions:', error);
+    }
+  };
+
+  const loadAllServices = async () => {
+    setLoadingServices(true);
+    try {
+      const services = await subscriptionApi.getAllServices();
+      setAllServices(services);
+    } catch (error) {
+      console.error('Error loading services:', error);
+      setAllServices([]);
+    } finally {
+      setLoadingServices(false);
     }
   };
 
@@ -318,7 +338,7 @@ export default function SubscriptionManager({
       <div className="subscription-actions">
         <button
           className="btn btn-primary"
-          onClick={() => setShowCreateForm(true)}
+          onClick={() => { setSubscribeToService(null); setShowCreateForm(true); }}
           disabled={loading}
         >
           ➕ Create New Service
@@ -338,9 +358,57 @@ export default function SubscriptionManager({
         </button>
       </div>
 
+      {/* Available services (for any connected user) */}
+      {account?.address && (
+        <div className="subscriptions-section available-services-section">
+          <h2 className="section-title">Available Services</h2>
+          {loadingServices ? (
+            <div className="empty-state card"><p>Loading services...</p></div>
+          ) : allServices.length === 0 ? (
+            <div className="empty-state card">
+              <p>No services yet. Create one to make it available for everyone.</p>
+            </div>
+          ) : (
+            <div className="subscriptions-grid">
+              {allServices.map((svc) => (
+                <div key={svc.id} className="card service-card">
+                  <div className="service-card-name">{svc.name}</div>
+                  <div className="service-card-detail">
+                    {typeof svc.cost === 'number' ? svc.cost : Number(svc.cost)} FLOW / {svc.frequency}
+                  </div>
+                  <div className="service-card-recipient" title={svc.recipientAddress}>
+                    To: {svc.recipientAddress.slice(0, 6)}…{svc.recipientAddress.slice(-4)}
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                      setSubscribeToService(svc);
+                      setShowCreateForm(true);
+                    }}
+                    disabled={loading}
+                  >
+                    Subscribe
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Create Service Form */}
       {showCreateForm && (
         <CreateServiceForm
+          key={subscribeToService?.id ?? 'new'}
+          initialData={subscribeToService ? {
+            service: subscribeToService.name,
+            cost: typeof subscribeToService.cost === 'number' ? subscribeToService.cost : Number(subscribeToService.cost),
+            frequency: subscribeToService.frequency as 'monthly' | 'weekly' | 'yearly',
+            recipientAddress: subscribeToService.recipientAddress,
+            autoPay: true,
+            serviceId: subscribeToService.id,
+          } : undefined}
           onSubmit={async (serviceData) => {
             if (!account?.address) {
               onError?.('Connect your wallet to create a subscription');
@@ -348,26 +416,35 @@ export default function SubscriptionManager({
             }
             try {
               setLoading(true);
+              setSubscribeToService(null);
               onSuccess?.('Creating subscription on-chain...');
-              const { subscriptionId: onChainId, txHash } = await contractSubscribe(
-                serviceData.recipientAddress,
-                serviceData.cost,
-                serviceData.frequency
-              );
+              const isPrivate = !!serviceData.isPrivate && !!CONFIDENTIAL_SUBSCRIPTION_CONTRACT_ADDRESS;
+              const { subscriptionId: onChainId, txHash } = isPrivate
+                ? await confidentialSubscribe(
+                    serviceData.recipientAddress,
+                    serviceData.cost,
+                    serviceData.frequency
+                  )
+                : await contractSubscribe(
+                    serviceData.recipientAddress,
+                    serviceData.cost,
+                    serviceData.frequency
+                  );
               await subscriptionApi.createSubscription({
-                serviceName: serviceData.service,
+                ...(serviceData.serviceId ? { serviceId: serviceData.serviceId } : { serviceName: serviceData.service }),
                 cost: serviceData.cost,
                 frequency: serviceData.frequency,
                 recipientAddress: serviceData.recipientAddress,
                 userAddress: account.address,
                 autoPay: serviceData.autoPay,
                 onChainSubscriptionId: onChainId,
-                onChainContractAddress: SUBSCRIPTION_CONTRACT_ADDRESS || undefined,
+                onChainContractAddress: isPrivate ? CONFIDENTIAL_SUBSCRIPTION_CONTRACT_ADDRESS : (SUBSCRIPTION_CONTRACT_ADDRESS || undefined),
               });
               onSuccess?.(`Subscription created on-chain. Tx: ${txHash.slice(0, 10)}...`);
               setShowCreateForm(false);
               await loadSubscriptions();
               loadSuggestions();
+              await loadAllServices();
             } catch (error) {
               console.error('Error creating subscription:', error);
               onError?.(error instanceof Error ? error.message : 'Failed to create subscription');
@@ -375,8 +452,8 @@ export default function SubscriptionManager({
               setLoading(false);
             }
           }}
-          onCancel={() => setShowCreateForm(false)}
-          loading={loading || contractPending}
+          onCancel={() => { setShowCreateForm(false); setSubscribeToService(null); }}
+          loading={loading || contractPending || confidentialPending}
         />
       )}
 

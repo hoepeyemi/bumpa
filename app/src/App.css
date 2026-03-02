@@ -1,4 +1,4 @@
-/* Modern SeekerIP Application Styles */
+/* Modern Bumpa Application Styles */
 
 /* Ensure all text is visible */
 h1, h2, h3, h4, h5, h6, p, span, div, label, button {
@@ -96,6 +96,21 @@ h1, h2, h3, h4, h5, h6, p, span, div, label, button {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+.header-logo-link {
+  font-size: 1.75rem;
+  font-weight: 700;
+  text-decoration: none;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+  color: inherit;
 }
 
 .logo-image {

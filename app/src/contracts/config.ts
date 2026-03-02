@@ -11,3 +11,10 @@ export const SUBSCRIPTION_CONTRACT_ADDRESS =
 export const FLOW_TESTNET_CHAIN_ID = 545;
 export const FLOW_TESTNET_RPC = "https://testnet.evm.nodes.onflow.org";
 export const FLOW_TESTNET_EXPLORER = "https://evm-testnet.flowscan.io";
+
+/** Confidential subscriptions (Zama FHE) on Sepolia. Set VITE_CONFIDENTIAL_SUBSCRIPTION_CONTRACT_ADDRESS after deploying ConfidentialSubscriptionManager. */
+export const CONFIDENTIAL_SUBSCRIPTION_CONTRACT_ADDRESS =
+  import.meta.env.VITE_CONFIDENTIAL_SUBSCRIPTION_CONTRACT_ADDRESS as string | undefined;
+/** Sepolia (FHEVM host for Zama). */
+export const SEPOLIA_CHAIN_ID = 11155111;
+export const SEPOLIA_RPC = "https://rpc.sepolia.org";

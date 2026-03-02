@@ -117,6 +117,28 @@
   gap: 1.5rem;
 }
 
+/* Available services cards */
+.available-services-section .service-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+}
+.service-card-name {
+  font-weight: 600;
+  font-size: 1.125rem;
+  color: #fff;
+}
+.service-card-detail {
+  font-size: 0.9375rem;
+  color: #e2e8f0;
+}
+.service-card-recipient {
+  font-size: 0.8125rem;
+  color: #94a3b8;
+  word-break: break-all;
+}
+
 /* Payment History */
 .payment-history-section {
   display: flex;

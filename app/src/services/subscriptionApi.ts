@@ -48,6 +48,19 @@ export interface Payment {
   timestamp: string;
 }
 
+/** Service from GET /api/services — available for any user to subscribe to */
+export interface Service {
+  id: string;
+  name: string;
+  description?: string | null;
+  cost: number;
+  frequency: string;
+  recipientAddress: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CreateSubscriptionInput {
   serviceId?: string;
   serviceName?: string;
@@ -80,6 +93,14 @@ export interface UpdateSubscriptionInput {
 }
 
 export const subscriptionApi = {
+  /**
+   * Get all services (available for any connected user to subscribe to).
+   */
+  async getAllServices(): Promise<Service[]> {
+    const response = await api.get('/services');
+    return response.data.data;
+  },
+
   /**
    * Get all subscriptions for a user. Pass contractAddress to only show subscriptions for the current contract.
    */
