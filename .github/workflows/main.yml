@@ -69,7 +69,7 @@ jobs:
             sudo docker run -d \
               --name bump \
               --restart unless-stopped \
-              -p 8080:5000 \
+              -p 8081:5000 \
               -v /home/ubuntu/bump/.env:/usr/src/app/.env:ro \
               ${{ env.DOCKER_USERNAME }}/bump:latest
             
