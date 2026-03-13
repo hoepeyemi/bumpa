@@ -36,9 +36,9 @@ jobs:
           file: Dockerfile
           push: true
           tags: |
-            ${{ env.DOCKER_USERNAME }}/bump/backend:latest
-          cache-from: type=registry,ref=${{ env.DOCKER_USERNAME }}/bump/backend:buildcache
-          cache-to: type=registry,ref=${{ env.DOCKER_USERNAME }}/bump/backend:buildcache,mode=max
+            ${{ env.DOCKER_USERNAME }}/bump:latest
+          cache-from: type=registry,ref=${{ env.DOCKER_USERNAME }}/bump:buildcache
+          cache-to: type=registry,ref=${{ env.DOCKER_USERNAME }}/bump:buildcache,mode=max
 
       - name: Deploy to Ubuntu server
         uses: appleboy/ssh-action@master
