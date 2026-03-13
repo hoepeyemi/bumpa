@@ -50,7 +50,7 @@ RUN echo "=== Final Contents ===" && \
 RUN npm install -g ts-node typescript && \
     chmod +x /usr/local/bin/ts-node
 
-EXPOSE 8080
+EXPOSE 8081
 
 # Run the application with dotenv preloaded
 CMD ["npx", "ts-node", "--transpile-only", "-r", "dotenv/config", "src/index.ts"]
