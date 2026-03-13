@@ -14,6 +14,9 @@ contract SubscriptionManagerFLOW is ReentrancyGuard {
         Yearly
     }
 
+
+
+// sub done on exit, pay done on entry
     struct Subscription {
         uint256 id;
         address subscriber;

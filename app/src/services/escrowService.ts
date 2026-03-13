@@ -6,7 +6,7 @@ export interface Escrow {
   depositor: string;
   recipient: string;
   amount: string;
-  tokenAddress?: string; // For token escrows, undefined for native HBAR
+  tokenAddress?: string; // For token escrows, undefined for native FLOW
   status: 'pending' | 'approved' | 'executed' | 'cancelled';
   conditions: string;
   createdAt: number;

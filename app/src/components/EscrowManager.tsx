@@ -222,7 +222,7 @@ export default function EscrowManager({
           </div>
 
           <div className="form-group">
-            <label className="form-label">Amount (HBAR)</label>
+            <label className="form-label">Amount (FLOW)</label>
             <input
               type="number"
               className="form-input"
@@ -282,7 +282,7 @@ export default function EscrowManager({
               </div>
               <div className="detail-row">
                 <span className="detail-label">Amount:</span>
-                <span className="detail-value">{escrow.amount} HBAR</span>
+                <span className="detail-value">{escrow.amount} FLOW</span>
               </div>
               <div className="detail-row">
                 <span className="detail-label">Conditions:</span>
